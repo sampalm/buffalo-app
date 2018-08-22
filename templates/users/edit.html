@@ -1,0 +1,25 @@
+<div class="page-header">
+  <h1>Edit User</h1>
+</div>
+
+<div class="card-body">
+    <%= if (errors) { %>
+      <%= for (key, val) in errors { %>
+        <div class="alert alert-danger alert-dismissible fade show m-1" role="alert">
+              <%= val %>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <% } %>
+    <% } %>
+</div>
+
+<%= form_for(user, {action: userPath({ user_id: user.ID }), method: "PUT"}) { %>
+  <%= f.InputTag("Name") %>
+  <%= f.InputTag("Email") %>
+  <%= f.InputTag("Password", {type: "password"}) %>
+  <%= f.InputTag("PasswordConfirm", {type: "password"}) %>
+  <button class="btn btn-success" role="submit">Save</button>
+  <a href="<%= userPath({ user_id: user.ID }) %>" class="btn btn-warning" data-confirm="Are you sure?">Cancel</a>
+<% } %>
