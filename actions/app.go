@@ -44,11 +44,18 @@ func App() *buffalo.App {
 		// Remove to disable this.
 		app.Use(middleware.PopTransaction(models.DB))
 
+		// Save current user into context
+		app.Use(SetCurrentUser)
+
 		// Setup and use translations:
 		app.Use(translations())
 
 		app.GET("/", HomeHandler)
 
+		app.Resource("/users", UsersResource{})
+		app.GET("/login", UsersLogin)
+		app.POST("/login", UsersLoginPost)
+		app.GET("/logout", UsersLogout)
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 
