@@ -52,7 +52,14 @@ func App() *buffalo.App {
 
 		app.GET("/", HomeHandler)
 
-		app.Resource("/users", UsersResource{})
+		users := app.Group("/users")
+		users.GET("/", AdminRequired(List))
+		users.POST("/", Create)
+		users.GET("/new", New)
+		users.GET("/{user_id}", Show)
+		users.PUT("/{user_id}", Update)
+		users.DELETE("/{user_id}", AdminRequired(Destroy))
+		users.GET("/{user_id}/edit", Edit)
 		app.GET("/login", UsersLogin)
 		app.POST("/login", UsersLoginPost)
 		app.GET("/logout", UsersLogout)

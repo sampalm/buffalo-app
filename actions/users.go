@@ -22,11 +22,6 @@ import (
 // Path: Plural (/users)
 // View Template Folder: Plural (/templates/users/)
 
-// UsersResource is the resource for the User model
-type UsersResource struct {
-	buffalo.Resource
-}
-
 func UsersLogin(c buffalo.Context) error {
 	return c.Render(200, r.HTML("users/login"))
 }
@@ -72,9 +67,21 @@ func SetCurrentUser(next buffalo.Handler) buffalo.Handler {
 	}
 }
 
+// AdminRequired requires a user to be logged in and to be an admin before accessing a route.
+func AdminRequired(next buffalo.Handler) buffalo.Handler {
+	return func(c buffalo.Context) error {
+		user, ok := c.Value("current_user").(*models.User)
+		if ok && user.Admin {
+			return next(c)
+		}
+		c.Flash().Add("danger", "You are not authorized to view that page.")
+		return c.Redirect(302, "/")
+	}
+}
+
 // List gets all Users. This function is mapped to the path
 // GET /users
-func (v UsersResource) List(c buffalo.Context) error {
+func List(c buffalo.Context) error {
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -100,7 +107,7 @@ func (v UsersResource) List(c buffalo.Context) error {
 
 // Show gets the data for one User. This function is mapped to
 // the path GET /users/{user_id}
-func (v UsersResource) Show(c buffalo.Context) error {
+func Show(c buffalo.Context) error {
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -120,13 +127,13 @@ func (v UsersResource) Show(c buffalo.Context) error {
 
 // New renders the form for creating a new User.
 // This function is mapped to the path GET /users/new
-func (v UsersResource) New(c buffalo.Context) error {
+func New(c buffalo.Context) error {
 	return c.Render(200, r.Auto(c, &models.User{}))
 }
 
 // Create adds a User to the DB. This function is mapped to the
 // path POST /users
-func (v UsersResource) Create(c buffalo.Context) error {
+func Create(c buffalo.Context) error {
 	// Allocate an empty User
 	user := &models.User{}
 
@@ -159,12 +166,12 @@ func (v UsersResource) Create(c buffalo.Context) error {
 	c.Flash().Add("success", "User was created successfully")
 
 	// and redirect to the users index page
-	return c.Redirect(302, "/")
+	return c.Redirect(302, "/login")
 }
 
 // Edit renders a edit form for a User. This function is
 // mapped to the path GET /users/{user_id}/edit
-func (v UsersResource) Edit(c buffalo.Context) error {
+func Edit(c buffalo.Context) error {
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -183,7 +190,7 @@ func (v UsersResource) Edit(c buffalo.Context) error {
 
 // Update changes a User in the DB. This function is mapped to
 // the path PUT /users/{user_id}
-func (v UsersResource) Update(c buffalo.Context) error {
+func Update(c buffalo.Context) error {
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -225,7 +232,7 @@ func (v UsersResource) Update(c buffalo.Context) error {
 
 // Destroy deletes a User from the DB. This function is mapped
 // to the path DELETE /users/{user_id}
-func (v UsersResource) Destroy(c buffalo.Context) error {
+func Destroy(c buffalo.Context) error {
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
