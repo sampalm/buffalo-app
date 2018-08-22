@@ -52,6 +52,7 @@ func App() *buffalo.App {
 
 		app.GET("/", HomeHandler)
 
+		// Users routing
 		users := app.Group("/users")
 		users.GET("/", AdminRequired(List))
 		users.POST("/", Create)
@@ -63,6 +64,17 @@ func App() *buffalo.App {
 		app.GET("/login", UsersLogin)
 		app.POST("/login", UsersLoginPost)
 		app.GET("/logout", UsersLogout)
+
+		// Posts routing
+		posts := app.Group("/posts")
+		posts.GET("/", PostsIndex)
+		posts.GET("/create", AdminRequired(PostsCreateGet))
+		posts.POST("/create", AdminRequired(PostsCreatePost))
+		posts.GET("/edit/{pid}", AdminRequired(PostsEditGet))
+		posts.POST("/edit/{pid}", AdminRequired(PostsEditPost))
+		posts.GET("/delete", PostsDelete)
+		posts.GET("/detail/{pid}", PostsDetail)
+
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 
