@@ -36,6 +36,8 @@ type ItsAvailable struct {
 
 // Create a new user into database
 func (u User) Create(tx *pop.Connection) (*validate.Errors, error) {
+	// Default user account
+	u.Admin = false
 	// Validade user password
 	pwdHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
