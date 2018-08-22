@@ -72,7 +72,7 @@ func App() *buffalo.App {
 		posts.POST("/create", AdminRequired(PostsCreatePost))
 		posts.GET("/edit/{pid}", AdminRequired(PostsEditGet))
 		posts.POST("/edit/{pid}", AdminRequired(PostsEditPost))
-		posts.GET("/delete", PostsDelete)
+		posts.GET("/delete/{pid}", PostsDelete)
 		posts.GET("/detail/{pid}", PostsDetail)
 
 		app.ServeFiles("/", assetsBox) // serve files from the public directory

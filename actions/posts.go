@@ -127,7 +127,25 @@ func PostsEditPost(c buffalo.Context) error {
 
 // PostsDelete default implementation.
 func PostsDelete(c buffalo.Context) error {
-	return c.Render(200, r.HTML("posts/delete.html"))
+	// Get the DB connection form context
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return errors.WithStack(errors.New("transaction not found"))
+	}
+
+	// Try to find post in the trasaction using pid parameter
+	post := &models.Post{}
+	if err := tx.Find(post, c.Param("pid")); err != nil {
+		return c.Error(404, err)
+	}
+
+	// Try to exclude post from DB
+	if err := tx.Destroy(post); err != nil {
+		return errors.WithStack(err)
+	}
+
+	c.Flash().Add("success", "Post was successfully deleted.")
+	return c.Redirect(302, "/posts")
 }
 
 // PostsDetail default implementation.
