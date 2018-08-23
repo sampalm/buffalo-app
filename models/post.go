@@ -68,6 +68,23 @@ func (p *Post) UploadAndCreate(tx *pop.Connection) (*validate.Errors, error) {
 	return tx.ValidateAndCreate(p)
 }
 
+//  Upload file to Disk and create a new post
+func (p *Post) DeleteFile(tx *pop.Connection) error {
+	// Query all posts that have that filename
+	ct, err := tx.Where("file_name = ?", p.FileName).Count(Post{})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	// If there are only a single post using that image it can be removed from disk
+	if ct == 0 {
+		dir := filepath.Join(".", "public", "uploads", p.FileName)
+		if err = os.Remove(dir); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
+}
+
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidadeAndCreate, pop.ValidateAndUpdate) method.
 func (p *Post) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(

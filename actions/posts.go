@@ -151,6 +151,11 @@ func PostsDelete(c buffalo.Context) error {
 		return errors.WithStack(err)
 	}
 
+	// Try to exclude image from disk
+	if err := post.DeleteFile(tx); err != nil {
+		return errors.WithStack(err)
+	}
+
 	c.Flash().Add("success", "Post was successfully deleted.")
 	return c.Redirect(302, "/posts")
 }
