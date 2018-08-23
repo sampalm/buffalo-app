@@ -13,3 +13,29 @@
         <p><%= markdown(post.Content) %></p>
     </div>
 </div>
+<div class="row mt-5">
+    <div class="col-md-8 offset-md-2">
+        <br>
+        <h2>Comments</h2>
+        <%= if (current_user) { %>
+            <%= form_for(post, {action: commentsCreatePath({pid: post.ID}), method: "POST"}) { %>
+                <div class="form-group">
+                    <label for="comment">Add Comment</label>
+                    <textarea class="form-control" name="Content" id="content"  rows="5"><%= comment.Content %></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            <% } %>
+        <% } else { %>
+            <a href="<%= loginPath() %>" class="btn btn-primary">Login to Comment</a>
+        <% } %>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <%= for (c) in comments { %>
+            <hr>
+            <p class="author"><%= c.Author.Username %></p>
+            <p style="white-space: pre-wrap;"><%= c.Content %></p>
+        <% } %>
+    </div>
+</div>
