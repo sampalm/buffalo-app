@@ -79,6 +79,18 @@ func AdminRequired(next buffalo.Handler) buffalo.Handler {
 	}
 }
 
+// LoginRequired requires a user to be logged in before accessing a route.
+func LoginRequired(next buffalo.Handler) buffalo.Handler {
+	return func(c buffalo.Context) error {
+		_, ok := c.Value("current_user").(*models.User)
+		if ok {
+			return next(c)
+		}
+		c.Flash().Add("danger", "You are not authorized to view that page.")
+		return c.Redirect(302, "/")
+	}
+}
+
 // List gets all Users. This function is mapped to the path
 // GET /users
 func List(c buffalo.Context) error {

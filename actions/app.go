@@ -77,6 +77,7 @@ func App() *buffalo.App {
 
 		// Comments routing
 		comments := app.Group("/comments")
+		comments.Use(LoginRequired)
 		comments.POST("/create/{pid}", CommentsCreatePost)
 		comments.GET("/edit", CommentsEdit)
 		comments.GET("/delete", CommentsDelete)
