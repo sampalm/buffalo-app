@@ -54,9 +54,16 @@ func PostsCreatePost(c buffalo.Context) error {
 		return errors.WithStack(errors.New("transaction not found"))
 	}
 
+	// Get FileImage from html form
+	f, err := c.File("FileImage")
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	post.FileImage = f
+
 	// Validate the data from html form
 	post.AuthorID = user.ID
-	veers, err := tx.ValidateAndCreate(post)
+	veers, err := post.UploadAndCreate(tx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -64,7 +71,7 @@ func PostsCreatePost(c buffalo.Context) error {
 	if veers.HasAny() {
 		c.Set("post", post)
 		c.Set("errors", veers.Errors)
-		return c.Render(422, r.HTML("post/create"))
+		return c.Render(422, r.HTML("posts/create"))
 	}
 
 	// If there are no errors set a success message
