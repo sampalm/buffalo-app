@@ -172,5 +172,22 @@ func PostsDetail(c buffalo.Context) error {
 	c.Set("post", post)
 	c.Set("author", author)
 
+	// Get the comments for this posts
+	comment := &models.Comment{}
+	c.Set("comment", comment)
+	comments := models.Comments{}
+	if err := tx.BelongsTo(post).All(&comments); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// To find the Comments Author
+	for i := 0; i < len(comments); i++ {
+		u := models.User{}
+		if err := tx.Find(&u, comments[i].AuthorID); err != nil {
+			return c.Error(404, err)
+		}
+		comments[i].Author = u
+	}
+	c.Set("comments", comments)
 	return c.Render(200, r.HTML("posts/detail.html"))
 }

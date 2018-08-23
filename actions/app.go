@@ -75,6 +75,12 @@ func App() *buffalo.App {
 		posts.GET("/delete/{pid}", PostsDelete)
 		posts.GET("/detail/{pid}", PostsDetail)
 
+		// Comments routing
+		comments := app.Group("/comments")
+		comments.POST("/create/{pid}", CommentsCreatePost)
+		comments.GET("/edit", CommentsEdit)
+		comments.GET("/delete", CommentsDelete)
+
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 
