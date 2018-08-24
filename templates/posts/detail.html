@@ -10,7 +10,7 @@
     <div class="col-md-8 offset-md-2">
         <h1 class="text-center"><%= post.Title %></h1>
         <p>by <span class="author"><%= author.Username %></span></p>
-        <span><img alt="<%= post.Title %>" src="<%= rootPath() %>uploads/<%= post.FileName %>"></span>
+        <span><img alt="<%= post.Title %>" src="<%= rootPath() %>uploads/<%= post.FileName %>" width="900px"></span>
         <p><%= markdown(post.Content) %></p>
     </div>
 </div>

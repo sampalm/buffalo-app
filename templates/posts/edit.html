@@ -15,11 +15,16 @@
 <div class="row mt-3 justify-content-center">
     <div class="col-md-8 col-sm-10">
         <h2>Edit this post</h2>
-        <%= form_for(post, {action: postsCreatePath(), method: "POST"}) { %>
+        <%= form_for(post, {action: editPostsPath({pid: post.ID}), method: "POST"}) { %>
             <div class="form-group">
                 <label for="title">Title</label>
                 <input type="text" name="Title" class="form-control" id="title" value="<%= post.Title %>">
             </div>
+            <div class="form-group">
+                <label for="content">Image:</label>
+                <img alt="<%= post.Title %>" src="<%= rootPath() %>uploads/<%= post.FileName %>" width="900px">
+            </div>
+            <%= f.FileTag("FileImage") %>
             <div class="form-group">
                 <label for="content">Content</label>
                 <textarea class="form-control" name="Content" id="content"  rows="12"><%= post.Content %></textarea>
