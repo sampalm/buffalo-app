@@ -30,10 +30,30 @@ type Post struct {
 
 type Posts []Post
 
+// Generate a MD5 Hash from a string
 func GetMD5Hash(text string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(text))
 	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+// Copy a file to disk
+func CopyToDisk(file binding.File, filename, ext string) error {
+	// Creates uploads folder if it isnt exists yet
+	dir := filepath.Join(".", "public", "uploads")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	// Copy file to uploads folder
+	f, err := os.Create(filepath.Join(dir, filename))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err = io.Copy(f, file); err != nil {
+		return err
+	}
+	return nil
 }
 
 //  Upload file to Disk and create a new post
@@ -50,22 +70,37 @@ func (p *Post) UploadAndCreate(tx *pop.Connection) (*validate.Errors, error) {
 	// Get files hashed name
 	p.FileName = fmt.Sprint(GetMD5Hash(p.FileImage.Filename), fExt)
 
-	// Creates uploads folder if it isnt exists yet
-	dir := filepath.Join(".", "public", "uploads")
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	// Try to copy the file
+	if err := CopyToDisk(p.FileImage, p.FileName, fExt); err != nil {
 		return validate.NewErrors(), errors.WithStack(err)
 	}
-	// Copy file to uploads folder
-	f, err := os.Create(filepath.Join(dir, p.FileName))
-	if err != nil {
-		return validate.NewErrors(), errors.WithStack(err)
-	}
-	defer f.Close()
-	if _, err = io.Copy(f, p.FileImage); err != nil {
-		return validate.NewErrors(), errors.WithStack(err)
-	}
+
 	// Save post into the DB
 	return tx.ValidateAndCreate(p)
+}
+
+//  Upload file to Disk and update the users post
+func (p *Post) UploadAndUpdated(tx *pop.Connection) (*validate.Errors, error) {
+	// Check if a file was selected
+	fExt := filepath.Ext(p.FileImage.Filename)
+	if p.FileImage.Filename != "" {
+		exts := map[string]bool{".png": true, ".jpg": true, ".jpeg": true}
+		// Check if the file extension is valid
+		if _, ok := exts[fExt]; !ok {
+			verrs := validate.NewErrors()
+			verrs.Add("FileImage", "Invalid selected file")
+			return verrs, nil
+		}
+		// Get files hashed name
+		p.FileName = fmt.Sprint(GetMD5Hash(p.FileImage.Filename), fExt)
+		// Try to copy the file
+		if err := CopyToDisk(p.FileImage, p.FileName, fExt); err != nil {
+			return validate.NewErrors(), errors.WithStack(err)
+		}
+	}
+
+	// Just update the users post without change the file image
+	return tx.ValidateAndUpdate(p)
 }
 
 //  Upload file to Disk and create a new post
