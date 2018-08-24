@@ -107,7 +107,7 @@ func PostsEditPost(c buffalo.Context) error {
 
 	// To find the Post the parameter pid is used
 	post := &models.Post{}
-	if err := tx.Find(post, c.Param("pdi")); err != nil {
+	if err := tx.Find(post, c.Param("pid")); err != nil {
 		return c.Error(404, err)
 	}
 
@@ -116,8 +116,15 @@ func PostsEditPost(c buffalo.Context) error {
 		return errors.WithStack(err)
 	}
 
+	// Get file from file_input form
+	f, err := c.File("FileImage")
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	post.FileImage = f
+
 	// Try to update post data in the DB
-	verrs, err := tx.ValidateAndUpdate(post)
+	verrs, err := post.UploadAndUpdated(tx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -129,7 +136,7 @@ func PostsEditPost(c buffalo.Context) error {
 
 	// If there are no errors set a success message
 	c.Flash().Add("success", "Post was updated successfully.")
-	return c.Redirect(302, "posts/detail/%s", post.ID)
+	return c.Redirect(302, "/posts/detail/%s", post.ID)
 }
 
 // PostsDelete default implementation.
