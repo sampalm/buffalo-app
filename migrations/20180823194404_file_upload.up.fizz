@@ -1,0 +1,1 @@
+add_column("posts", "file_name", "string", {default: ""})
