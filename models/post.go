@@ -26,6 +26,7 @@ type Post struct {
 	FileName  string       `json:"file_name" db:"file_name"`
 	Content   string       `json:"content" db:"content"`
 	AuthorID  uuid.UUID    `json:"author_id" db:"author_id"`
+	Tag       string       `json:"-" db:"-"`
 }
 
 type Posts []Post
