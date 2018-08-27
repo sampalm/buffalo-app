@@ -35,7 +35,7 @@
     <div class="col-md-8 offset-md-2">
         <%= for (c) in comments { %>
             <hr>
-            <p class="author"><%= c.Author.Username %></p>
+            <p class="author"><%= c.Author.Name %></p>
             <p style="white-space: pre-wrap;"><%= c.Content %></p>
             <%= if (current_user.Email == c.Author.Email) { %>
                 <a href="<%= commentsDeletePath({cid: c.ID}) %>" class="btn btn-danger btn-sm m-0">Delete comment</a>
