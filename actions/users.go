@@ -239,7 +239,10 @@ func Update(c buffalo.Context) error {
 	c.Flash().Add("success", "User was updated successfully")
 
 	// and redirect to the users index page
-	return c.Render(200, r.Auto(c, user))
+	if user.Admin {
+		return c.Render(200, r.Auto(c, user))
+	}
+	return c.Redirect(302, "/users/%s/edit", user.ID)
 }
 
 // Destroy deletes a User from the DB. This function is mapped
