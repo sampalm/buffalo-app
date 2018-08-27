@@ -50,13 +50,39 @@ func (u User) Create(tx *pop.Connection) (*validate.Errors, error) {
 }
 
 func (u User) Update(tx *pop.Connection) (*validate.Errors, error) {
-	// Validade user password
-	pwdHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return validate.NewErrors(), errors.WithStack(err)
+	// Validate user password
+	if u.Password != "" {
+		if check := validate.Validate(
+			&validators.StringLengthInRange{Field: u.Password, Name: "Password", Min: 6, Max: 20, Message: "Password is too weak."},
+			&validators.StringsMatch{Field: u.Password, Field2: u.PasswordConfirm, Name: "PasswordConfirm", Message: "Passwords do not match"},
+		); check != nil {
+			return check, nil
+		}
+		pwdHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return validate.NewErrors(), errors.WithStack(err)
+		}
+		u.PasswordHash = string(pwdHash)
 	}
-	u.PasswordHash = string(pwdHash)
-	return tx.ValidateAndUpdate(&u, "id", "username", "admin", "created_at")
+	// Validate user email
+	if u.Email != "" {
+		if check := validate.Validate(
+			&validators.EmailLike{Field: u.Email, Name: "Email"},
+		); check != nil {
+			return check, nil
+		}
+		exists, err := tx.Where("email = ? AND id != ?", u.Email, u.ID).Exists(u)
+		if err != nil {
+			return validate.NewErrors(), errors.WithStack(err)
+		}
+		if exists {
+			verrs := validate.NewErrors()
+			verrs.Add("Email", "Email is already being used.")
+			return verrs, nil
+		}
+	}
+
+	return validate.NewErrors(), tx.Update(&u)
 }
 
 func (u *User) Authorize(tx *pop.Connection) error {
