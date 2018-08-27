@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"strings"
+
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop"
 	"github.com/pkg/errors"
@@ -29,6 +31,37 @@ func PostsIndex(c buffalo.Context) error {
 	c.Set("pagination", q.Paginator)
 
 	return c.Render(200, r.HTML("posts/index.html"))
+}
+
+// PostsTags GET implementation.
+func PostsTags(c buffalo.Context) error {
+	// Get the DB connection from context.
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return errors.WithStack(errors.New("transaction not found"))
+	}
+
+	// Get tag param from url
+	tag := &models.Tag{}
+	if err := tx.Where("name = ?", c.Param("tag")).First(tag); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Set pagination
+	posts := &models.Posts{}
+
+	q := tx.PaginateFromParams(c.Params())
+	err := q.Where("posts.id = tags_posts.post_id").LeftJoin("tags_posts", "tags_posts.tag_id = ?", tag.ID).All(posts)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Make posts available inside the html template
+	c.Set("posts", posts)
+	// Add pagination to the html
+	c.Set("pagination", q.Paginator)
+
+	return c.Render(200, r.HTML("posts/tags.html"))
 }
 
 // PostsCreate GET implementation.
@@ -72,6 +105,21 @@ func PostsCreatePost(c buffalo.Context) error {
 		c.Set("post", post)
 		c.Set("errors", veers.Errors)
 		return c.Render(422, r.HTML("posts/create"))
+	}
+
+	// Create a new tag if necesary
+	if post.Tag != "" {
+		tag := &models.Tag{}
+		tag.Name = strings.ToLower(post.Tag)
+		if err := tag.Generate(tx); err != nil {
+			return errors.WithStack(err)
+		}
+		tagpost := &models.TagPost{}
+		tagpost.PostID = post.ID
+		tagpost.TagID = tag.ID
+		if err := tx.Save(tagpost); err != nil {
+			return errors.WithStack(err)
+		}
 	}
 
 	// If there are no errors set a success message
