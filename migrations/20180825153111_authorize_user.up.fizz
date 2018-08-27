@@ -1,0 +1,2 @@
+add_column("users", "provider", "string", {"default": "", "unique": true})
+add_column("users", "provider_id", "string", {"default": "", "unique": true})
