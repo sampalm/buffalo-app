@@ -25,6 +25,8 @@ type User struct {
 	PasswordHash    string    `json:"-" db:"password_hash"`
 	Password        string    `json:"-" db:"-"`
 	PasswordConfirm string    `json:"-" db:"-"`
+	Provider        string    `json:"provider" db:"provider"`
+	ProviderID      string    `json:"provider_id" db:"provider_id"`
 }
 
 type ItsAvailable struct {
@@ -72,6 +74,17 @@ func (u *User) Authorize(tx *pop.Connection) error {
 		return errors.New("Invalid password")
 	}
 	return nil
+}
+
+func (u *User) OAuthAndSave(tx *pop.Connection) error {
+	exists, err := tx.Where("username = ?", u.Username).Exists(u)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if exists {
+		u.Username = fmt.Sprintf("%s%d", u.Username, u.CreatedAt.UnixNano())
+	}
+	return tx.Save(u)
 }
 
 // Check if username or email is already in use
