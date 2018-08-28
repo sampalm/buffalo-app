@@ -20,6 +20,15 @@
                 <label for="title">Title</label>
                 <input type="text" name="Title" class="form-control" id="title" value="<%= post.Title %>">
             </div>
+            <select class="form-control" id="Tag" name="Tag">
+                <%= for (key, tag) in tags { %>
+                    <%= if (tag.Code == post_tag.Code) {%>
+                        <option value="<%= tag.Code %>" selected><%= tag.Name %></option>
+                    <% } else { %>
+                        <option value="<%= tag.Code %>"><%= tag.Name %></option>
+                    <% } %>
+                <% } %>
+            </select>
             <div class="form-group">
                 <label for="content">Image:</label>
                 <img alt="<%= post.Title %>" src="<%= rootPath() %>uploads/<%= post.FileName %>" width="900px">
