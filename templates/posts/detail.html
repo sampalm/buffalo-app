@@ -13,7 +13,7 @@
         <span class="author float-right"> Categories: 
         <%= if (tags) { %>
             <%= for (key, tag) in tags { %>
-            <a href="<%= postsTagPath({tag: tag.Name}) %>"><%= tag.Name %></a>
+            <a href="<%= postsTagPath({tag: tag.Code}) %>"><%= tag.Name %></a>
             <% } %>
         <% } %>
         </span>

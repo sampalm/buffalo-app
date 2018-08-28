@@ -1,0 +1,21 @@
+<div class="row">
+    <div class="col-md-3 offset-md-9">
+        <%= if (current_user.Admin) { %>
+            <a href="<%= newTagsPath() %>" class="btn btn-primary">Add New Tag</a>
+        <% } %>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-8">
+        <%= for (t) in tags { %>
+            <hr>
+            <a href="<%= tagsShowPath({tag: t.Code }) %>"><h1><%= t.Name %></h1></a>
+            <a href="<%= tagsDestroyPath({ tag: t.Code }) %>" class="btn btn-danger" data-method="DELETE" data-confirm="Are you sure?">Delete Tag</a>
+        <% } %>
+    </div>
+</div>
+<div class="row">
+    <div class="col">
+        <%= paginator(pagination) %>
+    </div>
+</div>

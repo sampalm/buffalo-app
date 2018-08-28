@@ -1,5 +1,9 @@
 <%= f.InputTag("Title") %>
-<%= f.InputTag("Tag") %>
+<select class="form-control" id="Tag" name="Tag">
+    <%= for (key, tag) in tags { %>
+        <option value="<%= tag.Code %>"><%= tag.Name %></option>
+    <% } %>
+</select>
 <%= f.FileTag("FileImage") %>
 <%= f.TextArea("Content", {rows: "15"}) %>
 <button class="btn btn-success" role="submit">Create</button>
