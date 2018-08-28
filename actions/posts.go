@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"strings"
+	"strconv"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop"
@@ -43,7 +43,7 @@ func PostsTags(c buffalo.Context) error {
 
 	// Get tag param from url
 	tag := &models.Tag{}
-	if err := tx.Where("name = ?", c.Param("tag")).First(tag); err != nil {
+	if err := tx.Where("code = ?", c.Param("tag")).First(tag); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -64,8 +64,88 @@ func PostsTags(c buffalo.Context) error {
 	return c.Render(200, r.HTML("posts/tags.html"))
 }
 
+// PostsTagsCreate GET implementation
+func PostsTagsCreateGet(c buffalo.Context) error {
+	c.Set("tag", &models.Tag{})
+	return c.Render(200, r.HTML("posts/tags-create.html"))
+}
+
+// PostsTagsCreate POST implementation
+func PostsTagsCreatePost(c buffalo.Context) error {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return errors.WithStack(errors.New("transaction not found"))
+	}
+
+	// Bind tag to the html form elements
+	tag := &models.Tag{}
+	if err := c.Bind(tag); err != nil {
+		return errors.WithStack(err)
+	}
+
+	verrs, err := tag.Generate(tx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if verrs.HasAny() {
+		c.Set("tag", tag)
+		c.Set("errors", verrs.Errors)
+		return c.Render(422, r.HTML("posts/tags-create.html"))
+	}
+
+	c.Flash().Add("success", "A new tag was created successfully.")
+	return c.Redirect(302, "/tags/list")
+}
+
+func PostsTagsList(c buffalo.Context) error {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return errors.WithStack(errors.New("transaction not found"))
+	}
+
+	// Set pagination
+	tags := &models.Tags{}
+	q := tx.PaginateFromParams(c.Params())
+	if err := q.All(tags); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Bind results to the html template
+	c.Set("tags", tags)
+	c.Set("pagination", q.Paginator)
+
+	return c.Render(200, r.HTML("posts/tags-list.html"))
+}
+
+func PostsTagsDestroy(c buffalo.Context) error {
+	tx := c.Value("tx").(*pop.Connection)
+	tag := &models.Tag{}
+
+	// Find the Tag using the code parameter
+	if err := tx.Where("code = ?", c.Param("tag")).First(tag); err != nil {
+		return c.Error(404, err)
+	}
+
+	// Delete Tag from DB
+	if err := tx.Destroy(tag); err != nil {
+		return errors.WithStack(err)
+	}
+
+	c.Flash().Add("success", "Tag as destroyed successfully")
+	return c.Redirect(302, "/tags/list")
+}
+
 // PostsCreate GET implementation.
 func PostsCreateGet(c buffalo.Context) error {
+	tx := c.Value("tx").(*pop.Connection)
+
+	tags := &models.Tags{}
+	if err := tx.All(tags); err != nil {
+		errors.WithStack(err)
+	}
+
+	c.Set("tags", tags)
 	c.Set("post", &models.Post{})
 	return c.Render(200, r.HTML("posts/create.html"))
 }
@@ -107,11 +187,14 @@ func PostsCreatePost(c buffalo.Context) error {
 		return c.Render(422, r.HTML("posts/create"))
 	}
 
-	// Create a new tag if necesary
+	// Validate the posts tag
 	if post.Tag != "" {
 		tag := &models.Tag{}
-		tag.Name = strings.ToLower(post.Tag)
-		if err := tag.Generate(tx); err != nil {
+		code, err := strconv.Atoi(post.Tag)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if err := tx.Where("code = ?", code).First(tag); err != nil {
 			return errors.WithStack(err)
 		}
 		tagpost := &models.TagPost{}
