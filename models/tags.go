@@ -1,6 +1,9 @@
 package models
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/gobuffalo/pop"
 	"github.com/gobuffalo/uuid"
 	"github.com/gobuffalo/validate"
@@ -11,24 +14,41 @@ import (
 type Tag struct {
 	ID   uuid.UUID `json:"id" db:"id"`
 	Name string    `json:"name" db:"name"`
+	Code int       `json:"code" db:"code" rw:"r"`
 }
 
 type Tags []Tag
 
-// Create a new post tag
-func (t *Tag) Generate(tx *pop.Connection) error {
+type StringIsRegular struct {
+	Field   string
+	Name    string
+	Message string
+	tx      *pop.Connection
+}
+
+// Generate a new categorize tag
+func (t *Tag) Generate(tx *pop.Connection) (*validate.Errors, error) {
+	// Make refex to say we only want
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		return validate.NewErrors(), err
+	}
+	t.Name = strings.ToLower(reg.ReplaceAllString(t.Name, ""))
+
+	// Check if the tag already exists
 	q := tx.Where("Name = ?", t.Name)
 	exists, err := q.Exists(t)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
-	if !exists {
-		return tx.Create(t)
+	if exists {
+		verrs := validate.NewErrors()
+		verrs.Add("Name", "Tag Name is already being used.")
+		return verrs, nil
 	}
-	if err := q.First(t); err != nil {
-		return errors.WithStack(err)
-	}
-	return nil
+
+	// Create a new tag
+	return tx.ValidateAndCreate(t)
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidadeAndCreate, pop.ValidateAndUpdate) method.
