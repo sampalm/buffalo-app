@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"database/sql"
 	"strconv"
 
 	"github.com/gobuffalo/buffalo"
@@ -124,7 +125,9 @@ func PostsEditGet(c buffalo.Context) error {
 	tag := &models.Tag{}
 	err := tx.Q().Where("tags.id = tags_posts.tag_id").LeftJoin("tags_posts", "tags_posts.post_id = ?", post.ID).First(tag)
 	if err != nil {
-		return c.Error(404, err)
+		if errors.Cause(err) != sql.ErrNoRows {
+			return c.Error(404, err)
+		}
 	}
 	// Get All Tags from DB to html template
 	tags := &models.Tags{}
@@ -176,15 +179,28 @@ func PostsEditPost(c buffalo.Context) error {
 	}
 
 	// Try to update post tags
-	pTag := &models.TagPost{}
-	err = tx.Q().LeftJoin("tags", "tags_posts.post_id = ?", post.ID).Where("tags.id = tags_posts.tag_id").First(pTag)
-	if err != nil {
-		return errors.WithStack(err)
-	}
 	newTag := &models.Tag{}
 	if err = tx.Where("code = ?", post.Tag).First(newTag); err != nil {
 		return errors.WithStack(err)
 	}
+	pTag := &models.TagPost{}
+	err = tx.Q().LeftJoin("tags", "tags_posts.post_id = ?", post.ID).Where("tags.id = tags_posts.tag_id").First(pTag)
+	if err != nil {
+		// Pehaps the old tag was destroyed, generate a new one.
+		if errors.Cause(err) == sql.ErrNoRows {
+			tagpost := &models.TagPost{}
+			tagpost.PostID = post.ID
+			tagpost.TagID = newTag.ID
+			if err := tx.Save(tagpost); err != nil {
+				return errors.WithStack(err)
+			}
+			c.Flash().Add("success", "Post was updated successfully.")
+			return c.Redirect(302, "/posts/detail/%s", post.ID)
+		}
+		return errors.WithStack(err)
+	}
+
+	// If there are an old tag, just update it.
 	pTag.PostID = post.ID
 	pTag.TagID = newTag.ID
 	if err = tx.Update(pTag); err != nil {
