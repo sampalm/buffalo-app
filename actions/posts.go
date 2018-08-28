@@ -235,9 +235,17 @@ func PostsDetail(c buffalo.Context) error {
 		return c.Error(404, err)
 	}
 
+	// Find the posts tags
+	tags := &models.Tags{}
+	err := tx.Q().Where("tags.id = tags_posts.tag_id").LeftJoin("tags_posts", "tags_posts.post_id = ?", post.ID).All(tags)
+	if err != nil {
+		return c.Error(404, err)
+	}
+
 	// Bind Post content and Author to html template
 	c.Set("post", post)
 	c.Set("author", author)
+	c.Set("tags", tags)
 
 	// Get the comments for this posts
 	comment := &models.Comment{}
