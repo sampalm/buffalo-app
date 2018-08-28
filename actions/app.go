@@ -78,11 +78,11 @@ func App() *buffalo.App {
 		posts.GET("/detail/{pid}", PostsDetail)
 		// Posts Tags routing
 		tags := app.Group("/tags")
-		tags.GET("/show/{tag}", PostsTags)
-		tags.GET("/list", PostsTagsList)
-		tags.GET("/new", PostsTagsCreateGet)
-		tags.POST("/new", PostsTagsCreatePost)
-		tags.DELETE("/destroy/{tag}", PostsTagsDestroy)
+		tags.GET("/show/{tag}", TagsShow)
+		tags.GET("/list", TagsList)
+		tags.GET("/new", TagsCreateGet)
+		tags.POST("/new", TagsCreatePost)
+		tags.DELETE("/destroy/{tag}", TagsDestroy)
 
 		// Comments routing
 		comments := app.Group("/comments")
