@@ -33,109 +33,6 @@ func PostsIndex(c buffalo.Context) error {
 	return c.Render(200, r.HTML("posts/index.html"))
 }
 
-// PostsTags GET implementation.
-func PostsTags(c buffalo.Context) error {
-	// Get the DB connection from context.
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return errors.WithStack(errors.New("transaction not found"))
-	}
-
-	// Get tag param from url
-	tag := &models.Tag{}
-	if err := tx.Where("code = ?", c.Param("tag")).First(tag); err != nil {
-		return errors.WithStack(err)
-	}
-
-	// Set pagination
-	posts := &models.Posts{}
-
-	q := tx.PaginateFromParams(c.Params())
-	err := q.Where("posts.id = tags_posts.post_id").LeftJoin("tags_posts", "tags_posts.tag_id = ?", tag.ID).All(posts)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	// Make posts available inside the html template
-	c.Set("posts", posts)
-	// Add pagination to the html
-	c.Set("pagination", q.Paginator)
-
-	return c.Render(200, r.HTML("posts/tags.html"))
-}
-
-// PostsTagsCreate GET implementation
-func PostsTagsCreateGet(c buffalo.Context) error {
-	c.Set("tag", &models.Tag{})
-	return c.Render(200, r.HTML("posts/tags-create.html"))
-}
-
-// PostsTagsCreate POST implementation
-func PostsTagsCreatePost(c buffalo.Context) error {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return errors.WithStack(errors.New("transaction not found"))
-	}
-
-	// Bind tag to the html form elements
-	tag := &models.Tag{}
-	if err := c.Bind(tag); err != nil {
-		return errors.WithStack(err)
-	}
-
-	verrs, err := tag.Generate(tx)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if verrs.HasAny() {
-		c.Set("tag", tag)
-		c.Set("errors", verrs.Errors)
-		return c.Render(422, r.HTML("posts/tags-create.html"))
-	}
-
-	c.Flash().Add("success", "A new tag was created successfully.")
-	return c.Redirect(302, "/tags/list")
-}
-
-func PostsTagsList(c buffalo.Context) error {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return errors.WithStack(errors.New("transaction not found"))
-	}
-
-	// Set pagination
-	tags := &models.Tags{}
-	q := tx.PaginateFromParams(c.Params())
-	if err := q.All(tags); err != nil {
-		return errors.WithStack(err)
-	}
-
-	// Bind results to the html template
-	c.Set("tags", tags)
-	c.Set("pagination", q.Paginator)
-
-	return c.Render(200, r.HTML("posts/tags-list.html"))
-}
-
-func PostsTagsDestroy(c buffalo.Context) error {
-	tx := c.Value("tx").(*pop.Connection)
-	tag := &models.Tag{}
-
-	// Find the Tag using the code parameter
-	if err := tx.Where("code = ?", c.Param("tag")).First(tag); err != nil {
-		return c.Error(404, err)
-	}
-
-	// Delete Tag from DB
-	if err := tx.Destroy(tag); err != nil {
-		return errors.WithStack(err)
-	}
-
-	c.Flash().Add("success", "Tag as destroyed successfully")
-	return c.Redirect(302, "/tags/list")
-}
-
 // PostsCreate GET implementation.
 func PostsCreateGet(c buffalo.Context) error {
 	tx := c.Value("tx").(*pop.Connection)
@@ -218,13 +115,26 @@ func PostsEditGet(c buffalo.Context) error {
 		return errors.WithStack(errors.New("transaction not found"))
 	}
 
-	// Bind Post to html template
+	// Get Post from DB to html template
 	post := &models.Post{}
 	if err := tx.Find(post, c.Param("pid")); err != nil {
 		return c.Error(404, err)
 	}
+	// Get Tag from DB to html template
+	tag := &models.Tag{}
+	err := tx.Q().Where("tags.id = tags_posts.tag_id").LeftJoin("tags_posts", "tags_posts.post_id = ?", post.ID).First(tag)
+	if err != nil {
+		return c.Error(404, err)
+	}
+	// Get All Tags from DB to html template
+	tags := &models.Tags{}
+	if err := tx.All(tags); err != nil {
+		return c.Error(404, err)
+	}
 
 	c.Set("post", post)
+	c.Set("post_tag", tag)
+	c.Set("tags", tags)
 	return c.Render(200, r.HTML("posts/edit.html"))
 }
 
@@ -263,6 +173,22 @@ func PostsEditPost(c buffalo.Context) error {
 		c.Set("post", post)
 		c.Set("errors", verrs.Errors)
 		return c.Render(422, r.HTML("posts/edit.html"))
+	}
+
+	// Try to update post tags
+	pTag := &models.TagPost{}
+	err = tx.Q().LeftJoin("tags", "tags_posts.post_id = ?", post.ID).Where("tags.id = tags_posts.tag_id").First(pTag)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	newTag := &models.Tag{}
+	if err = tx.Where("code = ?", post.Tag).First(newTag); err != nil {
+		return errors.WithStack(err)
+	}
+	pTag.PostID = post.ID
+	pTag.TagID = newTag.ID
+	if err = tx.Update(pTag); err != nil {
+		return errors.WithStack(err)
 	}
 
 	// If there are no errors set a success message
