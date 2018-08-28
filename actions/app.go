@@ -76,7 +76,13 @@ func App() *buffalo.App {
 		posts.POST("/edit/{pid}", AdminRequired(PostsEditPost))
 		posts.GET("/delete/{pid}", PostsDelete)
 		posts.GET("/detail/{pid}", PostsDetail)
-		posts.GET("/tags/{tag}", PostsTags)
+		// Posts Tags routing
+		tags := app.Group("/tags")
+		tags.GET("/show/{tag}", PostsTags)
+		tags.GET("/list", PostsTagsList)
+		tags.GET("/new", PostsTagsCreateGet)
+		tags.POST("/new", PostsTagsCreatePost)
+		tags.DELETE("/destroy/{tag}", PostsTagsDestroy)
 
 		// Comments routing
 		comments := app.Group("/comments")
